@@ -1,6 +1,6 @@
 from django.db import models
 from django.urls import reverse
-from store.models import Product
+from store.models import Product, Variation
 
 # Create your models here.
 class Cart(models.Model):
@@ -15,8 +15,13 @@ class CartItem(models.Model):
     cart= models.ForeignKey(Cart, on_delete=models.CASCADE)
     quantity =models.IntegerField()
     is_active = models.BooleanField(default=True)
+    variations= models.ManyToManyField(Variation, blank=True)
+    
+    def get_price(self):
+        total_item_price = f"${(self.quantity * self.product.price):.2f}" 
+        return total_item_price
 
     def __str__(self):
-        return self.product
+        return self.product.product_name
 
     
