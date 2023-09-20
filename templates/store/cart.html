@@ -5,94 +5,114 @@
 
     <div class="row">
       <aside class="col-lg-9">
-    
-    {% if not cart_items %}
-    <div class="text text-center">
-      <h1 class="mb-4">Your Shopping Cart is Empty</h1>
-      <a href="{% url 'store' %}" class="btn btn-primary">Continue Shopping</a>
-    </div>
-    {% else %}
-      {% for cartItem in cart_items %}
-          <div class="card">
-            <table class="table table-borderless table-shopping-cart">
-              <thead class="text-muted">
-                <tr class="small text-uppercase">
-                  <th scope="col">Product</th>
-                  <th scope="col" width="120">Quantity</th>
-                  <th scope="col" width="120">Price</th>
-                  <th scope="col" class="text-right" width="200"></th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td>
-                    <figure class="itemside align-items-center">
-                      <div class="aside">
-                        <img
-                          src="{{cartItem.product.images.url}}"
-                          class="img-sm"
-                        />
-                      </div>
-                      <figcaption class="info">
-                        <a href="{{ cartItem.product.get_url }}" class="title text-dark"
-                          >{{cartItem.product.product_name}}</a
-                        >
-                        <p class="text-muted small">
-                          {% if cartItem.variations.all %}
-                            {% for variation in cartItem.variations.all %}
+        {% if not cart_items %}
+        <div class="text text-center">
+          <h1 class="mb-4">Your Shopping Cart is Empty</h1>
+          <a href="{% url 'store' %}" class="btn btn-primary"
+            >Continue Shopping</a
+          >
+        </div>
+        {% else %} {% for cartItem in cart_items %}
+        <div class="card">
+          <table class="table table-borderless table-shopping-cart">
+            <thead class="text-muted">
+              <tr class="small text-uppercase">
+                <th scope="col">Product</th>
+                <th scope="col" width="120">Quantity</th>
+                <th scope="col" width="120">Price</th>
+                <th scope="col" class="text-right" width="200"></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>
+                  <figure class="itemside align-items-center">
+                    <div class="aside">
+                      <img
+                        src="{{cartItem.product.images.url}}"
+                        class="img-sm"
+                      />
+                    </div>
+                    <figcaption class="info">
+                      <a
+                        href="{{ cartItem.product.get_url }}"
+                        class="title text-dark"
+                        >{{cartItem.product.product_name}}</a
+                      >
+                      <p class="text-muted small">
+                        {% if cartItem.variations.all %} 
+                          {% for variation in cartItem.variations.all %} 
                             {{ variation.variation_category | lower }} : {{ variation.variation_value | lower }} 
-                            {% endfor %}
-                          {% endif %}
-                        </p>
-                      </figcaption>
-                    </figure>
-                  </td>
-                  <td>
-                    <!-- col.// -->
-                    <div class="col">
-                      <div class="input-group input-spinner">
-                        <div class="input-group-prepend">
-                          <a
+                          {% endfor %} 
+                        {% endif %}
+                      </p>
+                    </figcaption>
+                  </figure>
+                </td>
+                <td>
+                  <!-- col.// -->
+                  <div class="col">
+                    <div class="input-group input-spinner">
+                      <div class="input-group-prepend">
+                        <a
+                          class="btn btn-light"
+                          type="button"
+                          id="button-plus"
+                          href="{% url 'remove_cart' cartItem.id %}"
+                        >
+                          <i class="fa fa-minus"></i>
+                        </a>
+                      </div>
+                      <input
+                        type="text"
+                        class="form-control"
+                        value="{{ cartItem.quantity }}"
+                      />
+                      <div class="input-group-append">
+                        <form
+                          action="{% url 'add_cart' cartItem.product.id %}"
+                          method="POST"
+                        >
+                          {% csrf_token %}
+                          {% for item in cartItem.variations.all  %}
+                            <input type="hidden" name="{{ item.variation_category | lower }}" value="{{ item.variation_value | lower }}"/>
+                          {% endfor %}
+                          <button
                             class="btn btn-light"
-                            type="button"
-                            id="button-plus"
-                            href="{% url 'remove_cart' cartItem.product.id %}?cart_item_id={{ cartItem.id }}"
-                          >
-                            <i class="fa fa-minus"></i>
-                          </a>
-                        </div>
-                        <input type="text" class="form-control" value="{{ cartItem.quantity }}" />
-                        <div class="input-group-append">
-                          <a
-                            class="btn btn-light"
-                            type="button"
                             id="button-minus"
-                            href="{% url 'add_cart' cartItem.product.id %}?cart_item_id={{ cartItem.id }}"
+                            type="submit"
                           >
                             <i class="fa fa-plus"></i>
-                          </a>
-                        </div>
+                          </button>
+                        </form>
                       </div>
-                      <!-- input-group.// -->
                     </div>
-                    <!-- col.// -->
-                  </td>
-                  <td>
-                    <div class="price-wrap">
-                      <var class="price">{{ cartItem.get_price }}</var>
-                      <small class="text-muted"> {{cartItem.product.price}} each </small>
-                    </div>
-                    <!-- price-wrap .// -->
-                  </td>
-                  <td class="text-right">
-                    <a href="{% url 'remove_cart_item' cartItem.id %}" class="btn btn-danger"> Remove</a>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-      {% endfor %}
-    {% endif %}
+                    <!-- input-group.// -->
+                  </div>
+                  <!-- col.// -->
+                </td>
+                <td>
+                  <div class="price-wrap">
+                    <var class="price">{{ cartItem.get_price }}</var>
+                    <small class="text-muted">
+                      {{cartItem.product.price}} each
+                    </small>
+                  </div>
+                  <!-- price-wrap .// -->
+                </td>
+                <td class="text-right">
+                  <a
+                    href="{% url 'remove_cart_item' cartItem.id %}"
+                    class="btn btn-danger"
+                  >
+                    Remove</a
+                  >
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        {% endfor %} {% endif %}
         <!-- card.// -->
       </aside>
       <!-- col.// -->
@@ -118,11 +138,10 @@
             <a href="./place-order.html" class="btn btn-primary btn-block">
               Checkout
             </a>
-    
+
             <a href="{% url 'store' %}" class="btn btn-light btn-block"
               >Continue Shopping</a
             >
-           
           </div>
           <!-- card-body.// -->
         </div>

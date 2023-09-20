@@ -14,7 +14,7 @@ class AccountManager(BaseUserManager):
             first_name= first_name,
             last_name= last_name,
         )
-        
+        print("passssss", password)
         user.set_password(password)
         user.save(using = self._db)
         return user

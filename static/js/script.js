@@ -50,11 +50,7 @@ $(document).ready(function() {
 	if($('[data-toggle="tooltip"]').length>0) {  // check if element exists
 		$('[data-toggle="tooltip"]').tooltip()
 	} // end if
-
-
-
-
-    
+    console.log("+++++++++++++++++++")
 }); 
 // jquery end
-
+ console.log("++++++++++dddddd+++++++++")
