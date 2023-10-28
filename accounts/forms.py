@@ -30,6 +30,27 @@ class RegistrationForm(forms.ModelForm):
     if password != confirm_password:
       raise forms.ValidationError("!Error: Passwords are different")
     return confirm_password
+  
+class RestorePasswordForm(forms.ModelForm):
+  confirm_password=forms.CharField(widget=forms.PasswordInput(attrs={
+    'placeholder': 'Confirm password',
+    'class': 'form-control'
+  }))
+  password=forms.CharField(widget=forms.PasswordInput(attrs={
+    'placeholder': 'Enter password',
+    'class': 'form-control'
+  }))
+  
+  class Meta:
+    model=Account
+    fields= ['password']
+ 
+  def clean_confirm_password(self): ##clean make it execute automaticallly after post
+    password = self.cleaned_data.get('password')
+    confirm_password =self.cleaned_data.get('confirm_password')
+    if password != confirm_password:
+      raise forms.ValidationError("!Error: Passwords are different")
+    return confirm_password
       
     
     

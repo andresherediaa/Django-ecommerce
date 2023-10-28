@@ -3,6 +3,8 @@ from store.models import Product, Variation
 from .models import Cart, CartItem
 from django.http import HttpResponse
 from django.db.models import Q
+from django.contrib.auth.decorators import login_required
+from orders.forms import OrderForm
 def _cart_id(request):
     cart = request.session.session_key
     if not cart:
@@ -20,7 +22,17 @@ def remove_cart_item(request, cart_item_id):
 def remove_cart(request, cart_item_id):
     cart = get_create_cart(request)
     try:
-        cart_item = CartItem.objects.get(cart=cart, id=cart_item_id)
+        cart_item = []
+        if request.user.is_authenticated:
+            cart_item = CartItem.objects.get(
+                user=request.user,
+                id=cart_item_id,
+            )
+        else:
+            cart_item = CartItem.objects.get(
+                cart=cart,
+                id=cart_item_id,
+            )
         cart_item.quantity -=1
         if cart_item.quantity <= 0:
             remove_cart_item(request, cart_item_id)
@@ -34,18 +46,24 @@ def add_cart(request, product_id):
     variation_params={}
     selected_cart_item = None
     product = get_product_id(request, product_id)
-    product_variation= get_variations_by_product(request, product)
-    print("===>",product_variation)
+    product_variation= get_variations_by_product(request, product) #un array de objetos Variation serian dos vlaores el category y el size
     ##crea el cart id que almacenara todos los cart items
     cart= get_create_cart(request)
     ##update cart items
     try:
-        cart_item = CartItem.objects.filter(
-            cart=cart,
-            product=product,
-        )
+        cart_item = []
+        if request.user.is_authenticated:
+            cart_item = CartItem.objects.filter(
+                user=request.user,
+                product=product,
+            )
+        else:
+            cart_item = CartItem.objects.filter(
+                cart=cart,
+                product=product,
+            )
         for item in product_variation:
-            variation_params[item.variation_category] = item.variation_value
+            variation_params[item.variation_category] = item.variation_value ## {'size': 'large', 'color':'red'}
         
         for item in cart_item:
             variation_match=0
@@ -70,13 +88,20 @@ def add_cart(request, product_id):
             cart_item.variations.clear()
             for item in product_variation:
                 cart_item.variations.add(item)
-        cart_item.save()
+        if request.user.is_authenticated:
+            cart_item.user = request.user
+            cart_item.save()
+        else:
+            cart_item.save()
     return redirect('cart')
  
 def cart(request, quantity=0, total=0, cart_items=None):
     try:
-        cart = Cart.objects.get(cart_id= _cart_id(request))
-        cart_items= CartItem.objects.filter(cart=cart, is_active=True)
+        if request.user.is_authenticated:
+            cart_items= CartItem.objects.filter(user=request.user, is_active=True)
+        else:
+            cart = Cart.objects.get(cart_id= _cart_id(request))
+            cart_items= CartItem.objects.filter(cart=cart, is_active=True)
         for item in cart_items:
             total +=  (item.product.price * item.quantity)
             quantity += item.quantity
@@ -98,9 +123,7 @@ def get_variations_by_product(request, product):
             key= req
             value = request.POST[key]
             try:
-                print("POST", key, product, value)
                 variation = Variation.objects.filter(variation_category__iexact=key, product=product, variation_value__iexact=value)
-               
                 if len(variation) >0:
                     product_variation.append(variation.first())
             except Variation.DoesNotExist:
@@ -118,9 +141,48 @@ def get_product_id(request, product_id):
 def get_create_cart(request):
     try:
         cart = Cart.objects.get(cart_id=_cart_id(request))
-    except Cart.DoesNotExist:
-        cart = Cart.objects.create(
-            cart_id = _cart_id(cart)
-        )
-    cart.save()
+    except Exception as e:
+        cart = Cart.objects.create(cart_id=_cart_id(request))
+        cart.save()
     return cart
+
+def getTotalQuanityTax(cart_items=[]):
+    quantity=0
+    subtotal=0
+    for item in cart_items:
+        subtotal +=  (item.product.price * item.quantity)
+        quantity += item.quantity
+    tax = ((subtotal * 12) / 100)
+    subtotal = subtotal
+    total = subtotal + tax  
+    tax_str = '$' + f"{tax:.2f}"
+    subtotal_str = '$' + f"{subtotal:.2f}"
+    total_str = '$' + f"{total:.2f}"
+    return { 'subtotal_str':subtotal_str, 'quantity': quantity, 'tax_str': tax_str, 'total_str': total_str, 'total': total, 'subtotal': subtotal, 'tax':tax}
+@login_required
+def checkout(request,  cart_items=None):
+    prices= {}
+    try:
+        if request.user.is_authenticated:
+            cart_items= CartItem.objects.filter(user=request.user, is_active=True)
+        else:
+            cart = Cart.objects.get(cart_id= _cart_id(request))
+            cart_items= CartItem.objects.filter(cart=cart, is_active=True)
+        print("cart items",cart_items)
+        
+    except Exception as e:
+        pass
+    prices = getTotalQuanityTax(cart_items)
+    context= {
+        'quantity': prices['quantity'],
+        'total_without_tax' : prices['subtotal_str'],
+        'total_tax': prices['tax_str'],
+        'total': prices['total_str'],
+        'cart_items' :cart_items,
+        'form' : OrderForm()
+    }
+    if cart_items.count() <=0:
+        return redirect('store')
+    return render(request, 'store/checkout.html', context)
+
+ 

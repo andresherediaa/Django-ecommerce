@@ -36,7 +36,6 @@ def store(request, category_slug = None):
         page_products = pages['page_products']
     products_count = products.count()
 
-    print(pages['paginator'].page_range)
     context = {
         'products': page_products,
         'products_quantity' : products_count,
@@ -57,7 +56,6 @@ def product_detail(request, category_slug , product_slug, is_active=False):
         'single_product': single_product,
         'is_active': is_active
     }
-    
     return render(request, 'store/product_detail.html', context)
 
 def search(request):
